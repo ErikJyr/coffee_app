@@ -1,50 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-
-type CoffeeProduct = {
-  name: string
-  type: string
-  price: string
-  category: string
-  image: string
-  warm?: boolean
-}
-
-type CartLine = CoffeeProduct & { quantity: number }
+import { useTransientNotice } from '@/composables/useTransientNotice'
+import { catalogAssets, categories, products } from '@/data/coffee'
+import type { CartLine, CoffeeProduct } from '@/types/coffee'
 
 const emit = defineEmits<{
   (event: 'open-detail', product: CoffeeProduct): void
   (event: 'open-order', items: CartLine[]): void
 }>()
 
-const imageCoffee2 = 'https://www.figma.com/api/mcp/asset/20e69cc5-11bd-4cc1-9ed2-527012e2508b.png'
-const imageCoffee3 = 'https://www.figma.com/api/mcp/asset/78dcb04c-4656-4bd6-8ace-e555f83e15ef.png'
-const imageCoffee4 = 'https://www.figma.com/api/mcp/asset/a0e142c3-1dc9-4099-a2f5-b77e0e287d13.png'
-const imageCoffee5 = 'https://www.figma.com/api/mcp/asset/909b84fd-4c26-4681-a4b3-0b9175cb442c.png'
-const bannerImage = 'https://www.figma.com/api/mcp/asset/7f3fda68-a204-497e-9f35-4f99798e11d5.png'
-const starIcon = 'https://www.figma.com/api/mcp/asset/b4edec5e-8d65-456e-b4b0-a7ba7ae2b8a7.svg'
-const plusIcon = 'https://www.figma.com/api/mcp/asset/9f1035c3-39cd-4c18-af46-7b026143bec2.svg'
-const arrowDownIcon = 'https://www.figma.com/api/mcp/asset/327fc650-6a35-4b9c-a1f4-278e039b50fa.svg'
-const filterIcon = 'https://www.figma.com/api/mcp/asset/d42147f6-06d7-4ff1-9bde-f870718671fa.svg'
-const homeIcon = 'https://www.figma.com/api/mcp/asset/e04dd923-6cbf-4d1c-b25b-b24dca753989.svg'
-const heartIcon = 'https://www.figma.com/api/mcp/asset/8efe51a4-847a-4792-937b-028978a3461a.svg'
-const bagIcon = 'https://www.figma.com/api/mcp/asset/e8cfea80-dd60-48e9-a44d-dfad3b5600a2.svg'
-const notificationIcon = 'https://www.figma.com/api/mcp/asset/f754a3e9-3bc5-4aee-bd59-4e403a72ce6c.svg'
-
-const categories = ['All Coffee', 'Machiato', 'Latte', 'Americano']
-const activeCategory = ref('All Coffee')
+const activeCategory = ref<(typeof categories)[number]>('All Coffee')
 const searchQuery = ref('')
 const cartItems = ref<CartLine[]>([])
 const location = ref('Estonia, Kuressaare')
-const notice = ref('')
-let noticeTimer: number | undefined
-
-const products: CoffeeProduct[] = [
-  { name: 'Caffe Mocha', type: 'Deep Foam', price: '4.53€', category: 'All Coffee', image: imageCoffee2 },
-  { name: 'Flat White', type: 'Espresso', price: '3.53€', category: 'Latte', image: imageCoffee3 },
-  { name: 'Caffe Panna', type: 'Ice/Hot', price: '5.53€', category: 'Machiato', image: imageCoffee4, warm: true },
-  { name: 'Mocha Fusi', type: 'Ice/Hot', price: '7.53€', category: 'Americano', image: imageCoffee5, warm: true },
-]
+const { notice, showNotice } = useTransientNotice()
 
 const cartCount = computed(() => cartItems.value.reduce((count, item) => count + item.quantity, 0))
 
@@ -69,17 +38,6 @@ function addToCart(product: CoffeeProduct) {
   cartItems.value.push({ ...product, quantity: 1 })
 }
 
-function showNotice(message: string) {
-  if (noticeTimer) {
-    window.clearTimeout(noticeTimer)
-  }
-  notice.value = message
-  noticeTimer = window.setTimeout(() => {
-    notice.value = ''
-    noticeTimer = undefined
-  }, 2200)
-}
-
 function cycleCategory() {
   const currentIndex = categories.indexOf(activeCategory.value)
   activeCategory.value = categories[(currentIndex + 1) % categories.length]!
@@ -92,24 +50,33 @@ function cycleCategory() {
     <div class="top-area">
       <div class="location-block">
         <span class="eyebrow">Location</span>
-        <button class="location-button" type="button" @click="location = location === 'Estonia, Kuressaare' ? 'Tallinn, Estonia' : 'Estonia, Kuressaare'">
+        <button
+          class="location-button"
+          type="button"
+          @click="location = location === 'Estonia, Kuressaare' ? 'Tallinn, Estonia' : 'Estonia, Kuressaare'"
+        >
           {{ location }}
-          <img :src="arrowDownIcon" alt="" />
+          <img :src="catalogAssets.arrowDown" alt="" />
         </button>
       </div>
 
       <div class="search-row">
         <label class="search-field">
           <span class="search-glyph" aria-hidden="true"></span>
-          <input v-model="searchQuery" type="search" placeholder="Search coffee" aria-label="Search coffee" />
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Search coffee"
+            aria-label="Search coffee"
+          />
         </label>
         <button class="filter-button" type="button" aria-label="Filter coffee" @click="cycleCategory">
-          <img :src="filterIcon" alt="" />
+          <img :src="catalogAssets.filter" alt="" />
         </button>
       </div>
 
       <div class="promo-banner">
-        <img :src="bannerImage" alt="Coffee cups" />
+        <img :src="catalogAssets.banner" alt="Coffee cups" />
         <div class="promo-copy">
           <span>Promo</span>
           <strong>Buy one get one FREE</strong>
@@ -117,7 +84,7 @@ function cycleCategory() {
       </div>
     </div>
 
-    <main class="catalog">
+    <div class="catalog">
       <p v-if="notice" class="home-notice" role="status">{{ notice }}</p>
       <div class="category-list" role="tablist" aria-label="Coffee categories">
         <button
@@ -135,10 +102,16 @@ function cycleCategory() {
       </div>
 
       <div class="product-grid">
-        <article v-for="(product, index) in visibleProducts" :key="product.name" class="product-card" :style="{ '--card-index': index }" @click="emit('open-detail', product)">
+        <article
+          v-for="(product, index) in visibleProducts"
+          :key="product.name"
+          class="product-card"
+          :style="{ '--card-index': index }"
+          @click="emit('open-detail', product)"
+        >
           <div class="product-image-wrap">
             <img class="product-image" :src="product.image" :alt="product.name" />
-            <span class="rating"><img :src="starIcon" alt="" />4.8</span>
+            <span class="rating"><img :src="catalogAssets.star" alt="" />4.8</span>
           </div>
           <div class="product-detail">
             <div>
@@ -147,40 +120,56 @@ function cycleCategory() {
             </div>
             <div class="product-price-row">
               <strong>{{ product.price }}</strong>
-              <button class="add-button" :class="{ warm: product.warm }" type="button" :aria-label="`Add ${product.name}`" @click.stop="addToCart(product)">
-                <img :src="plusIcon" alt="" />
+              <button
+                class="add-button"
+                type="button"
+                :aria-label="`Add ${product.name}`"
+                @click.stop="addToCart(product)"
+              >
+                <img :src="catalogAssets.plus" alt="" />
               </button>
             </div>
           </div>
         </article>
         <p v-if="visibleProducts.length === 0" class="empty-state">No coffee found.</p>
       </div>
-    </main>
+    </div>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
       <button class="nav-item active" type="button" aria-label="Home" @click="showNotice('You are viewing home')">
-        <img :src="homeIcon" alt="" />
+        <img :src="catalogAssets.home" alt="" />
         <span class="nav-dot"></span>
       </button>
-      <button class="nav-item" type="button" aria-label="Favorites" @click="showNotice('Favorites are ready for your next coffee')"><img :src="heartIcon" alt="" /></button>
-      <button class="nav-item cart-nav" type="button" aria-label="Cart" @click="cartCount ? emit('open-order', cartItems) : showNotice('Your cart is empty')">
-        <img :src="bagIcon" alt="" />
+      <button
+        class="nav-item"
+        type="button"
+        aria-label="Favorites"
+        @click="showNotice('Favorites are ready for your next coffee')"
+      >
+        <img :src="catalogAssets.heart" alt="" />
+      </button>
+      <button
+        class="nav-item cart-nav"
+        type="button"
+        aria-label="Cart"
+        @click="cartCount ? emit('open-order', cartItems) : showNotice('Your cart is empty')"
+      >
+        <img :src="catalogAssets.bag" alt="" />
         <span v-if="cartCount" class="cart-count">{{ cartCount }}</span>
       </button>
-      <button class="nav-item" type="button" aria-label="Notifications" @click="showNotice('You are all caught up')"><img :src="notificationIcon" alt="" /></button>
+      <button
+        class="nav-item"
+        type="button"
+        aria-label="Notifications"
+        @click="showNotice('You are all caught up')"
+      >
+        <img :src="catalogAssets.notification" alt="" />
+      </button>
     </nav>
   </section>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600&display=swap');
-@import '../styles/tokens.css';
-
-:global(body) {
-  margin: 0;
-  background: #f9f9f9;
-}
-
 .coffee-screen {
   --accent: var(--color-coffee-primary);
   --surface: var(--color-coffee-night);
@@ -497,10 +486,6 @@ button {
   transform: scale(0.94);
 }
 
-.add-button.warm {
-  background: var(--accent);
-}
-
 .add-button img {
   width: 16px;
   height: 16px;
@@ -575,12 +560,26 @@ button {
 }
 
 @keyframes product-rise {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .product-card { animation: none; transition: none; }
-  .add-button, .nav-item { transition: none; }
+  .product-card {
+    animation: none;
+    transition: none;
+  }
+
+  .add-button,
+  .nav-item {
+    transition: none;
+  }
 }
 </style>
