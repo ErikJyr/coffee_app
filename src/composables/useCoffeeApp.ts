@@ -1,6 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { addCartProduct } from '@/data/cart'
-import { appAssets, appScreens, defaultProduct } from '@/data/coffee'
+import { appAssets, appScreens, defaultProduct, getPriceForSize } from '@/data/coffee'
 import type {
   AppScreen,
   CartLine,
@@ -67,7 +67,11 @@ export function useCoffeeApp() {
   }
 
   function buyProduct(): void {
-    cartItems.value = addCartProduct(cartItems.value, selectedProduct.value, selectedSize.value)
+    const product = {
+      ...selectedProduct.value,
+      price: getPriceForSize(selectedProduct.value.price, selectedSize.value),
+    }
+    cartItems.value = addCartProduct(cartItems.value, product, selectedSize.value)
     orderOrigin.value = 'detail'
     goTo('order')
   }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { appAssets, productSizes } from '@/data/coffee'
+import { computed } from 'vue'
+import { appAssets, getPriceForSize, productSizes } from '@/data/coffee'
 import type { CoffeeProduct, ProductSize } from '@/types/coffee'
 
-defineProps<{
+const props = defineProps<{
   product: CoffeeProduct
 }>()
 
@@ -14,6 +15,7 @@ defineEmits<{
 const selectedSize = defineModel<ProductSize>('selectedSize', { required: true })
 const isFavorite = defineModel<boolean>('isFavorite', { required: true })
 const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { required: true })
+const selectedPrice = computed(() => getPriceForSize(props.product.price, selectedSize.value))
 </script>
 
 <template>
@@ -89,7 +91,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
     <footer class="buy-bar">
       <div>
         <span>Price per cup</span>
-        <strong>{{ product.price }}</strong>
+        <strong>{{ selectedPrice }}</strong>
       </div>
 
       <button class="primary-button" type="button" data-testid="buy-coffee" @click="$emit('buy')">

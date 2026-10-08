@@ -18,6 +18,7 @@ const emit = defineEmits<{
 const activeCategory = ref<(typeof categories)[number]>('All Coffee')
 const searchQuery = ref('')
 const savedOnly = ref<boolean>(false)
+const brandTapCount = ref(0)
 const { notice, showNotice } = useTransientNotice(2200)
 
 const cartCount = computed(() => props.cartItems.reduce((count, item) => count + item.quantity, 0))
@@ -55,13 +56,23 @@ function cycleCategory() {
   activeCategory.value = categories[(currentIndex + 1) % categories.length]!
   showNotice(`Showing ${activeCategory.value.toLowerCase()}`)
 }
+
+function tapBrand(): void {
+  brandTapCount.value += 1
+  if (brandTapCount.value < 5) return
+
+  brandTapCount.value = 0
+  showNotice('The coffee beans formed a union. Your latte is negotiating a raise.')
+}
 </script>
 
 <template>
   <section class="coffee-screen" aria-label="Coffee shop home">
     <div class="top-area">
       <div class="location-block">
-        <span class="eyebrow">COFFEE CORNER · KURESSAARE</span>
+        <button class="eyebrow brand-easter-egg" type="button" aria-label="Coffee Corner" @click="tapBrand">
+          COFFEE CORNER · KURESSAARE
+        </button>
         <h1>Your daily coffee.</h1>
         <p>Find your favorite, freshly brewed.</p>
       </div>
@@ -184,6 +195,14 @@ function cycleCategory() {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 1.8px;
+}
+
+.brand-easter-egg {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
 .location-block h1 {

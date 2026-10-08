@@ -69,7 +69,7 @@ export const products: readonly CoffeeProduct[] = [
     name: 'Caffe Mocha',
     description: 'Espresso meets smooth chocolate and steamed milk, finished with a soft layer of foam. A rich, comforting cup for a little pause in your day.',
     type: 'Deep Foam',
-    price: '4.53€',
+    price: '4.69€',
     category: 'All Coffee',
     image: caffeMochaImage,
   },
@@ -77,7 +77,7 @@ export const products: readonly CoffeeProduct[] = [
     name: 'Flat White',
     description: 'A smooth espresso base with velvety steamed milk and a delicate layer of microfoam. Balanced and mellow, with the coffee flavor taking center stage.',
     type: 'Espresso',
-    price: '3.53€',
+    price: '3.69€',
     category: 'Latte',
     image: flatWhiteImage,
   },
@@ -85,7 +85,7 @@ export const products: readonly CoffeeProduct[] = [
     name: 'Caffe Panna',
     description: 'A full-bodied espresso topped with a soft swirl of cream. A small, indulgent coffee with a smooth finish, made for a slow and satisfying sip.',
     type: 'Ice/Hot',
-    price: '5.53€',
+    price: '5.69€',
     category: 'Machiato',
     image: caffePannaImage,
   },
@@ -93,11 +93,19 @@ export const products: readonly CoffeeProduct[] = [
     name: 'Mocha Fusi',
     description: 'Chocolate and espresso come together in a creamy, satisfying cup. Enjoy it hot for a cozy moment or over ice when your day calls for something cool.',
     type: 'Ice/Hot',
-    price: '7.53€',
+    price: '7.69€',
     category: 'Americano',
     image: mochaFusiImage,
   },
 ]
+
+export function getPriceForSize(price: string, size: ProductSize): string {
+  const basePrice = Number.parseFloat(price.replace(/[^0-9.]/g, ''))
+  if (!Number.isFinite(basePrice)) throw new TypeError(`Invalid coffee price: ${price}`)
+
+  const adjustment = size === 'S' ? -0.5 : size === 'L' ? 0.5 : 0
+  return `${(basePrice + adjustment).toFixed(2)}€`
+}
 
 export const defaultProduct: CoffeeProduct = {
   name: 'Caffe Mocha',
