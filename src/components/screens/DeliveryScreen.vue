@@ -1,45 +1,46 @@
 <script setup lang="ts">
 import { appAssets } from '@/data/coffee'
+import DeliveryMap from '@/components/DeliveryMap.vue'
+import { useDemoDelivery } from '@/composables/useDemoDelivery'
 
 defineEmits<{
   back: []
 }>()
 
 const mapCentered = defineModel<boolean>('mapCentered', { required: true })
+const { progress, arrived, position, minutesLeft, paused, pause, resume, restart } = useDemoDelivery()
 </script>
 
 <template>
   <section class="delivery-screen">
-    <img class="map-image" :src="appAssets.map" alt="Map showing delivery route" />
-    <img class="route-image" :src="appAssets.route" alt="" />
-    <img class="location-pin" :src="appAssets.location" alt="Delivery location" />
-
-    <button class="map-back icon-button" type="button" aria-label="Back to order" @click="$emit('back')">
-      <img class="back-icon" :src="appAssets.back" alt="" />
-    </button>
-    <button
-      class="map-gps"
-      type="button"
-      aria-label="Center delivery map"
-      :aria-pressed="mapCentered"
-      @click="mapCentered = !mapCentered"
-    >
-      {{ mapCentered ? '✓' : '◎' }}
-    </button>
+    <DeliveryMap
+      v-model:following="mapCentered"
+      :position="position"
+      @back="$emit('back')"
+    />
 
     <div class="delivery-panel">
       <span class="panel-indicator"></span>
 
       <div class="delivery-time">
-        <strong>10 minutes left</strong>
+        <strong data-testid="delivery-eta">{{ arrived ? 'Your coffee has arrived!' : `${minutesLeft} minutes left` }}</strong>
         <span>Delivery to <b>Erik Jürgenstein</b></span>
       </div>
 
-      <div class="progress" aria-label="Delivery progress">
-        <i></i>
-        <i></i>
-        <i></i>
-        <i></i>
+      <div
+        class="progress"
+        role="progressbar"
+        aria-label="Simulated delivery progress"
+        :aria-valuenow="Math.round(progress * 100)"
+        :aria-valuemin="0"
+        :aria-valuemax="100"
+        data-testid="delivery-progress"
+      >
+        <i
+          v-for="step in 4"
+          :key="step"
+          :style="{ '--step-progress': `${Math.min(1, Math.max(0, progress * 4 - (step - 1))) * 100}%` }"
+        ></i>
       </div>
 
       <div class="delivered-card">
@@ -47,8 +48,8 @@ const mapCentered = defineModel<boolean>('mapCentered', { required: true })
           <img :src="appAssets.motorbike" alt="" />
         </span>
         <div>
-          <strong>Delivering your order</strong>
-          <p>We will deliver your goods to you in the shortest possible time.</p>
+          <strong>{{ arrived ? 'Delivery complete' : paused ? 'Demo paused' : 'Delivering your order' }}</strong>
+          <p>{{ arrived ? 'Demo complete. Replay to take another trip.' : 'Simulated courier · 10 demo minutes in 60 seconds.' }}</p>
         </div>
       </div>
 
@@ -58,7 +59,9 @@ const mapCentered = defineModel<boolean>('mapCentered', { required: true })
           <strong>Brooklyn Simmons</strong>
           <span>Personal Courier</span>
         </div>
-        <a class="call-button" href="tel:+3725550123" aria-label="Call courier">⌕</a>
+        <button v-if="!arrived && !paused" class="demo-button" type="button" data-testid="demo-pause" aria-label="Pause demo delivery" @click="pause">Ⅱ</button>
+        <button v-if="!arrived && paused" class="demo-button" type="button" data-testid="demo-resume" aria-label="Resume demo delivery" @click="resume">▶</button>
+        <button class="demo-button" type="button" data-testid="demo-replay" aria-label="Replay demo delivery" @click="restart">↻</button>
       </div>
     </div>
   </section>
@@ -66,66 +69,22 @@ const mapCentered = defineModel<boolean>('mapCentered', { required: true })
 
 <style scoped>
 .delivery-screen {
+  display: grid;
+  grid-template-rows: minmax(360px, 1fr) auto;
   width: min(100%, var(--size-screen-width));
-  min-height: 812px;
+  height: 100dvh;
+  min-height: 720px;
   margin: auto;
   overflow: hidden;
   position: relative;
   background: #fff;
 }
 
-.map-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 812px;
-  object-fit: cover;
-}
-
-.route-image {
-  width: 171px;
-  position: absolute;
-  top: 168px;
-  left: 82px;
-}
-
-.location-pin {
-  width: 24px;
-  position: absolute;
-  top: 211px;
-  left: 66px;
-}
-
-.map-back,
-.map-gps {
-  position: absolute;
-  top: 68px;
-  background: #ededed;
-}
-
-.map-back {
-  left: 24px;
-}
-
-.map-gps {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 0;
-  border-radius: 12px;
-  right: 24px;
-  font-size: 28px;
-}
-
 .delivery-panel {
   min-height: 322px;
-  padding: 16px 24px 34px;
+  padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
   border-radius: 24px 24px 0 0;
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  position: relative;
   background: var(--color-coffee-night);
 }
 
@@ -164,11 +123,7 @@ const mapCentered = defineModel<boolean>('mapCentered', { required: true })
   height: 4px;
   flex: 1;
   border-radius: 20px;
-  background: var(--color-coffee-primary);
-}
-
-.progress i:last-child {
-  background: #e3e3e3;
+  background: linear-gradient(to right, var(--color-coffee-primary) var(--step-progress), #e3e3e3 var(--step-progress));
 }
 
 .delivered-card {
@@ -208,7 +163,7 @@ const mapCentered = defineModel<boolean>('mapCentered', { required: true })
 .courier-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-top: 14px;
 }
 
@@ -230,15 +185,16 @@ const mapCentered = defineModel<boolean>('mapCentered', { required: true })
   font-size: 12px;
 }
 
-.call-button {
+.demo-button {
   display: grid;
   width: 44px;
   height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   border: 1px solid #e3e3e3;
   border-radius: 12px;
   color: #fff;
-  text-decoration: none;
-  font-size: 28px;
+  background: transparent;
+  font-size: 22px;
 }
 </style>

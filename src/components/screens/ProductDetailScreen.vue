@@ -19,16 +19,16 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 <template>
   <section class="detail-screen">
     <header class="screen-header">
-      <button class="icon-button" type="button" aria-label="Back to home" @click="$emit('back')">
+      <button class="icon-button" type="button" data-testid="detail-back" aria-label="Back to home" @click="$emit('back')">
         <img class="back-icon" :src="appAssets.back" alt="" />
       </button>
 
-      <strong>Detail</strong>
+      <strong>Your next favorite</strong>
 
       <button
         class="icon-button"
         type="button"
-        aria-label="Favorite product"
+        data-testid="favorite-product" :aria-label="isFavorite ? 'Remove saved coffee' : 'Save coffee'"
         :aria-pressed="isFavorite"
         @click="isFavorite = !isFavorite"
       >
@@ -62,10 +62,8 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
     <section class="description">
       <h2>Description</h2>
       <p>
-        A cappuccino is an approximately 150 ml (5 oz) beverage, with 25 ml of espresso
-        coffee and 85 ml of fresh milk
-        {{ descriptionExpanded ? 'that creates its signature velvety texture.' : 'the fo..' }}
-        <button type="button" @click="descriptionExpanded = !descriptionExpanded">
+        {{ descriptionExpanded ? product.description : `${product.description.slice(0, 112)}…` }}
+        <button type="button" data-testid="expand-description" :aria-expanded="descriptionExpanded" @click="descriptionExpanded = !descriptionExpanded">
           {{ descriptionExpanded ? 'Read Less' : 'Read More' }}
         </button>
       </p>
@@ -78,6 +76,8 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
           v-for="size in productSizes"
           :key="size"
           type="button"
+          :data-testid="`size-${size}`"
+          :aria-pressed="selectedSize === size"
           :class="{ selected: selectedSize === size }"
           @click="selectedSize = size"
         >
@@ -88,12 +88,12 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 
     <footer class="buy-bar">
       <div>
-        <span>Price</span>
+        <span>Price per cup</span>
         <strong>{{ product.price }}</strong>
       </div>
 
-      <button class="primary-button" type="button" @click="$emit('buy')">
-        Buy Now
+      <button class="primary-button" type="button" data-testid="buy-coffee" @click="$emit('buy')">
+        Add to my bag
       </button>
     </footer>
   </section>
@@ -102,9 +102,9 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 <style scoped>
 .detail-screen {
   width: min(100%, var(--size-screen-width));
-  min-height: 812px;
+  min-height: 100dvh;
   margin: auto;
-  padding: 68px 24px 118px;
+  padding: 28px 24px 150px;
   position: relative;
   background: var(--color-coffee-night);
 }
@@ -116,7 +116,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 .detail-image {
   display: block;
   width: 100%;
-  height: 202px;
+  height: 240px;
   border-radius: 16px;
   object-fit: cover;
 }
@@ -130,7 +130,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 
 .detail-heading h1 {
   margin-bottom: 4px;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .detail-heading p {
@@ -185,7 +185,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 .divider {
   height: 1px;
   margin: 16px;
-  background: #e3e3e3;
+  background: var(--color-coffee-border);
 }
 
 .description h2,
@@ -203,7 +203,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 .description button {
   padding: 0;
   border: 0;
-  color: var(--color-coffee-primary);
+  color: #a5a8ff;
   background: transparent;
   font-weight: 600;
 }
@@ -218,9 +218,10 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 }
 
 .size-picker button {
-  width: 96px;
-  height: 41px;
-  border: 1px solid #e3e3e3;
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: 1px solid var(--color-coffee-border);
   border-radius: 12px;
   color: #fff;
   background: transparent;
@@ -240,14 +241,16 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 16px 24px 46px;
+  padding: 16px 24px calc(20px + env(safe-area-inset-bottom));
   border-radius: 16px 16px 0 0;
   position: fixed;
-  right: max(0px, calc((100vw - 375px) / 2));
+  right: max(0px, calc((100vw - var(--size-screen-width)) / 2));
   bottom: 0;
-  left: max(0px, calc((100vw - 375px) / 2));
+  left: max(0px, calc((100vw - var(--size-screen-width)) / 2));
   z-index: 10;
-  background: var(--color-coffee-night);
+  border-top: 1px solid var(--color-coffee-border);
+  background: #1b1b24f5;
+  backdrop-filter: blur(16px);
 }
 
 .buy-bar > div {
@@ -262,7 +265,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
 }
 
 .buy-bar strong {
-  color: var(--color-coffee-primary);
+  color: #a5a8ff;
   font-size: 18px;
 }
 
@@ -286,8 +289,7 @@ const descriptionExpanded = defineModel<boolean>('descriptionExpanded', { requir
     height: 40px;
   }
 
-  .size-picker button {
-    width: calc((100vw - 80px) / 3);
-  }
+  .detail-heading { flex-wrap: wrap; }
+  .feature-list { padding-top: 0; }
 }
 </style>

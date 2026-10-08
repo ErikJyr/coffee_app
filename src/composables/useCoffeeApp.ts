@@ -1,4 +1,5 @@
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { addCartProduct } from '@/data/cart'
 import { appAssets, appScreens, defaultProduct } from '@/data/coffee'
 import type {
   AppScreen,
@@ -24,7 +25,18 @@ export function useCoffeeApp() {
   const selectedSize = ref<ProductSize>('M')
   const cartItems = ref<CartLine[]>([])
 
-  const isFavorite = ref(false)
+  const favoriteNames = ref<string[]>([])
+  const isFavorite = computed<boolean>({
+    get: () => favoriteNames.value.includes(selectedProduct.value.name),
+    set: (favorite) => {
+      favoriteNames.value = favorite
+        ? [...favoriteNames.value.filter((name) => name !== selectedProduct.value.name), selectedProduct.value.name]
+        : favoriteNames.value.filter((name) => name !== selectedProduct.value.name)
+    },
+  })
+  const orderOrigin = ref<AppScreen>('home')
+  const deliveryAddress = ref<string>('Kohtu tn 22, Kuressaare, 93812, Estonia')
+  const deliveryNote = ref<string>('')
   const descriptionExpanded = ref(false)
   const deliveryMode = ref<DeliveryMode>('Deliver')
   const discountApplied = ref(true)
@@ -37,6 +49,7 @@ export function useCoffeeApp() {
   function goTo(nextScreen: AppScreen) {
     screen.value = nextScreen
     window.location.hash = nextScreen
+    window.scrollTo(0, 0)
   }
 
   function openDetail(product: CoffeeProduct) {
@@ -45,30 +58,39 @@ export function useCoffeeApp() {
       image: product.name === 'Caffe Mocha' ? appAssets.product : product.image,
     }
     selectedSize.value = 'M'
+    descriptionExpanded.value = false
     goTo('detail')
   }
 
-  function openOrder(items: CartLine[] = []) {
-    cartItems.value = items.length
-      ? items.map((item) => ({ ...item }))
-      : [{ ...selectedProduct.value, quantity: 1 }]
+  function addProduct(product: CoffeeProduct): void {
+    cartItems.value = addCartProduct(cartItems.value, product, 'M')
+  }
 
-    deliveryMode.value = 'Deliver'
-    discountApplied.value = true
-    paymentOpen.value = false
+  function buyProduct(): void {
+    cartItems.value = addCartProduct(cartItems.value, selectedProduct.value, selectedSize.value)
+    orderOrigin.value = 'detail'
     goTo('order')
   }
 
-  function changeLineQuantity(index: number, delta: number) {
-    const item = cartItems.value[index]
+  function openCart(): void {
+    orderOrigin.value = 'home'
+    goTo('order')
+  }
 
-    if (item) {
-      item.quantity = Math.max(1, item.quantity + delta)
-    }
+  function backFromOrder(): void {
+    goTo(orderOrigin.value)
+  }
+
+  function changeLineQuantity(index: number, delta: number): void {
+    if (!cartItems.value[index]) throw new RangeError(`Basket item ${index} does not exist`)
+    cartItems.value = cartItems.value
+      .map((item, itemIndex) => itemIndex === index ? { ...item, quantity: item.quantity + delta } : item)
+      .filter((item) => item.quantity > 0)
   }
 
   function syncScreenWithHash() {
     screen.value = getInitialScreen()
+    window.scrollTo(0, 0)
   }
 
   onMounted(() => window.addEventListener('hashchange', syncScreenWithHash))
@@ -79,6 +101,9 @@ export function useCoffeeApp() {
     selectedProduct,
     selectedSize,
     cartItems,
+    favoriteNames,
+    deliveryAddress,
+    deliveryNote,
     isFavorite,
     descriptionExpanded,
     deliveryMode,
@@ -90,7 +115,10 @@ export function useCoffeeApp() {
     mapCentered,
     goTo,
     openDetail,
-    openOrder,
+    addProduct,
+    buyProduct,
+    openCart,
+    backFromOrder,
     changeLineQuantity,
   }
 }

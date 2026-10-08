@@ -1,12 +1,14 @@
 export type CoffeeProduct = {
   name: string
   type: string
+  description: string
   price: string
   category: string
   image: string
 }
 
 export type CartLine = CoffeeProduct & {
+  size: ProductSize
   quantity: number
 }
 

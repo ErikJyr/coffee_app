@@ -17,12 +17,12 @@ defineEmits<{
 
     <div class="onboarding-content">
       <div>
-        <h1>Fall in Love with Coffee in Blissful Delight!</h1>
-        <p>Welcome to our cozy coffee corner, where every cup is delightful for you.</p>
+        <h1>Good days start with great coffee.</h1>
+        <p>Your favorite cup, made with care. Explore our menu and find your daily ritual.</p>
       </div>
 
-      <button class="primary-button" type="button" @click="$emit('start')">
-        Get Started
+      <button class="primary-button" type="button" data-testid="start-shopping" @click="$emit('start')">
+        Find my coffee
       </button>
     </div>
   </section>
@@ -31,7 +31,7 @@ defineEmits<{
 <style scoped>
 .onboarding-screen {
   width: min(100%, var(--size-screen-width));
-  min-height: 812px;
+  min-height: max(680px, 100dvh);
   margin: auto;
   overflow: hidden;
   position: relative;
@@ -42,35 +42,35 @@ defineEmits<{
 .onboarding-image {
   display: block;
   width: 100%;
-  height: 536px;
+  height: max(420px, 65dvh);
   object-fit: cover;
   object-position: center;
   animation: onboarding-drift 8s ease-in-out infinite alternate;
 }
 
 .onboarding-overlay {
-  height: 360px;
   position: absolute;
-  inset: 452px 0 0;
-  background: linear-gradient(transparent, #050505 24%);
+  inset: 40% 0 0;
+  background: linear-gradient(transparent, #050505 55%);
 }
 
 .onboarding-content {
   display: flex;
-  height: 336px;
+  min-height: 300px;
+  gap: 28px;
   flex-direction: column;
   justify-content: space-between;
-  padding: 24px;
+  padding: 24px 28px calc(28px + env(safe-area-inset-bottom));
   position: absolute;
-  inset: 476px 0 0;
+  inset: auto 0 0;
   text-align: center;
 }
 
 .onboarding-content h1 {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.5;
-  letter-spacing: 0.16px;
+  font-size: clamp(30px, 8vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -1px;
 }
 
 .onboarding-content p {

@@ -1,13 +1,15 @@
 :root {
-  --color-coffee-night: #0f0f0f;
-  --color-coffee-primary: #4e56c6;
+  --color-coffee-night: #111116;
+  --color-coffee-primary: #6468df;
   --color-coffee-text: #ffffff;
-  --color-coffee-muted: #a2a2a2;
+  --color-coffee-muted: #aaa9b5;
+  --color-coffee-surface: #1d1d25;
+  --color-coffee-border: #33333e;
   --space-1: 4px;
   --space-4: 16px;
   --space-5: 24px;
-  --space-screen-top: 68px;
+  --space-screen-top: 32px;
   --size-product-image: 128px;
   --size-promo-height: 140px;
-  --size-screen-width: 375px;
+  --size-screen-width: 440px;
 }

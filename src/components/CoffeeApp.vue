@@ -11,6 +11,9 @@ const {
   selectedProduct,
   selectedSize,
   cartItems,
+  favoriteNames,
+  deliveryAddress,
+  deliveryNote,
   isFavorite,
   descriptionExpanded,
   deliveryMode,
@@ -22,7 +25,10 @@ const {
   mapCentered,
   goTo,
   openDetail,
-  openOrder,
+  addProduct,
+  buyProduct,
+  openCart,
+  backFromOrder,
   changeLineQuantity,
 } = useCoffeeApp()
 </script>
@@ -36,8 +42,11 @@ const {
 
     <HeroSection
       v-else-if="screen === 'home'"
+      :cart-items="cartItems"
+      :favorite-names="favoriteNames"
+      @add-product="addProduct"
       @open-detail="openDetail"
-      @open-order="openOrder"
+      @open-order="openCart"
     />
 
     <ProductDetailScreen
@@ -47,7 +56,7 @@ const {
       v-model:description-expanded="descriptionExpanded"
       :product="selectedProduct"
       @back="goTo('home')"
-      @buy="openOrder()"
+      @buy="buyProduct"
     />
 
     <OrderScreen
@@ -58,8 +67,11 @@ const {
       v-model:note-open="noteOpen"
       v-model:payment-open="paymentOpen"
       v-model:payment-method="paymentMethod"
+      v-model:delivery-address="deliveryAddress"
+      v-model:delivery-note="deliveryNote"
       :cart-items="cartItems"
-      @back="goTo('detail')"
+      @back="backFromOrder"
+      @browse="goTo('home')"
       @change-quantity="changeLineQuantity"
       @submit="goTo('delivery')"
     />
@@ -74,6 +86,8 @@ const {
 
 <style scoped>
 .coffee-app {
+  max-width: var(--size-screen-width);
+  margin: auto;
   min-height: 100vh;
   color: var(--color-coffee-text);
   background: var(--color-coffee-night);

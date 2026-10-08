@@ -3,17 +3,20 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  font-weight: normal;
 }
 
 body {
   min-height: 100vh;
   color: var(--color-coffee-text);
-  background: #f9f9f9;
+  background: #16151b;
   line-height: 1.6;
   font-family: 'Sora', sans-serif;
   font-size: 15px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, strong, b {
+  font-weight: 600;
 }

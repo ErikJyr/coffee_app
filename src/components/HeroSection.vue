@@ -4,18 +4,23 @@ import { useTransientNotice } from '@/composables/useTransientNotice'
 import { catalogAssets, categories, products } from '@/data/coffee'
 import type { CartLine, CoffeeProduct } from '@/types/coffee'
 
+const props = defineProps<{
+  cartItems: readonly CartLine[]
+  favoriteNames: readonly string[]
+}>()
+
 const emit = defineEmits<{
   (event: 'open-detail', product: CoffeeProduct): void
-  (event: 'open-order', items: CartLine[]): void
+  (event: 'open-order'): void
+  (event: 'add-product', product: CoffeeProduct): void
 }>()
 
 const activeCategory = ref<(typeof categories)[number]>('All Coffee')
 const searchQuery = ref('')
-const cartItems = ref<CartLine[]>([])
-const location = ref('Estonia, Kuressaare')
-const { notice, showNotice } = useTransientNotice()
+const savedOnly = ref<boolean>(false)
+const { notice, showNotice } = useTransientNotice(2200)
 
-const cartCount = computed(() => cartItems.value.reduce((count, item) => count + item.quantity, 0))
+const cartCount = computed(() => props.cartItems.reduce((count, item) => count + item.quantity, 0))
 
 const visibleProducts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -23,19 +28,26 @@ const visibleProducts = computed(() => {
   return products.filter((product) => {
     const matchesCategory = activeCategory.value === 'All Coffee' || product.category === activeCategory.value
     const matchesSearch = !query || `${product.name} ${product.type}`.toLowerCase().includes(query)
-    return matchesCategory && matchesSearch
+    const matchesSaved = !savedOnly.value || props.favoriteNames.includes(product.name)
+    return matchesCategory && matchesSearch && matchesSaved
   })
 })
 
-function addToCart(product: CoffeeProduct) {
-  const existingItem = cartItems.value.find((item) => item.name === product.name)
+function addToCart(product: CoffeeProduct): void {
+  emit('add-product', product)
+  showNotice(`${product.name} added to your bag`)
+}
 
-  if (existingItem) {
-    existingItem.quantity += 1
-    return
-  }
+function showMenu(): void {
+  savedOnly.value = false
+  activeCategory.value = 'All Coffee'
+  searchQuery.value = ''
+}
 
-  cartItems.value.push({ ...product, quantity: 1 })
+function showSaved(): void {
+  savedOnly.value = true
+  activeCategory.value = 'All Coffee'
+  searchQuery.value = ''
 }
 
 function cycleCategory() {
@@ -49,15 +61,9 @@ function cycleCategory() {
   <section class="coffee-screen" aria-label="Coffee shop home">
     <div class="top-area">
       <div class="location-block">
-        <span class="eyebrow">Location</span>
-        <button
-          class="location-button"
-          type="button"
-          @click="location = location === 'Estonia, Kuressaare' ? 'Tallinn, Estonia' : 'Estonia, Kuressaare'"
-        >
-          {{ location }}
-          <img :src="catalogAssets.arrowDown" alt="" />
-        </button>
+        <span class="eyebrow">COFFEE CORNER · KURESSAARE</span>
+        <h1>Your daily coffee.</h1>
+        <p>Find your favorite, freshly brewed.</p>
       </div>
 
       <div class="search-row">
@@ -66,11 +72,12 @@ function cycleCategory() {
           <input
             v-model="searchQuery"
             type="search"
-            placeholder="Search coffee"
+            data-testid="coffee-search"
+            placeholder="Find your next coffee"
             aria-label="Search coffee"
           />
         </label>
-        <button class="filter-button" type="button" aria-label="Filter coffee" @click="cycleCategory">
+        <button class="filter-button" type="button" aria-label="Next coffee category" data-testid="category-cycle" @click="cycleCategory">
           <img :src="catalogAssets.filter" alt="" />
         </button>
       </div>
@@ -78,23 +85,24 @@ function cycleCategory() {
       <div class="promo-banner">
         <img :src="catalogAssets.banner" alt="Coffee cups" />
         <div class="promo-copy">
-          <span>Promo</span>
-          <strong>Buy one get one FREE</strong>
+          <span>€0.50 off your order</span>
+          <strong>Your daily ritual,<br />a little sweeter.</strong>
         </div>
       </div>
     </div>
 
     <div class="catalog">
-      <p v-if="notice" class="home-notice" role="status">{{ notice }}</p>
-      <div class="category-list" role="tablist" aria-label="Coffee categories">
+      <p v-if="notice" class="home-notice" role="status" data-testid="cart-notice">{{ notice }}</p>
+      <div class="catalog-heading"><h2>{{ savedOnly ? 'Your saved coffees' : 'Made for your day' }}</h2><span>{{ visibleProducts.length }} coffees</span></div>
+      <div class="category-list" role="group" aria-label="Coffee categories">
         <button
           v-for="category in categories"
           :key="category"
           class="category-button"
           :class="{ active: activeCategory === category }"
           type="button"
-          role="tab"
-          :aria-selected="activeCategory === category"
+          :data-testid="`category-${category}`"
+          :aria-pressed="activeCategory === category"
           @click="activeCategory = category"
         >
           {{ category }}
@@ -103,67 +111,55 @@ function cycleCategory() {
 
       <div class="product-grid">
         <article
-          v-for="(product, index) in visibleProducts"
+          v-for="product in visibleProducts"
           :key="product.name"
           class="product-card"
-          :style="{ '--card-index': index }"
-          @click="emit('open-detail', product)"
         >
-          <div class="product-image-wrap">
-            <img class="product-image" :src="product.image" :alt="product.name" />
-            <span class="rating"><img :src="catalogAssets.star" alt="" />4.8</span>
-          </div>
-          <div class="product-detail">
-            <div>
-              <h2>{{ product.name }}</h2>
-              <p>{{ product.type }}</p>
-            </div>
-            <div class="product-price-row">
-              <strong>{{ product.price }}</strong>
-              <button
-                class="add-button"
-                type="button"
-                :aria-label="`Add ${product.name}`"
-                @click.stop="addToCart(product)"
-              >
-                <img :src="catalogAssets.plus" alt="" />
-              </button>
-            </div>
+          <button
+            class="product-open"
+            type="button"
+            :data-testid="`product-${product.name}`"
+            :aria-label="`View ${product.name}`"
+            @click="emit('open-detail', product)"
+          >
+            <span class="product-image-wrap">
+              <img class="product-image" :src="product.image" alt="" />
+              <span class="rating"><img :src="catalogAssets.star" alt="" />4.8</span>
+            </span>
+            <span class="product-name">{{ product.name }}</span>
+            <span class="product-type">{{ product.type }}</span>
+          </button>
+          <div class="product-price-row">
+            <strong>{{ product.price }}</strong>
+            <button
+              class="add-button"
+              type="button"
+              :data-testid="`add-${product.name}`"
+              :aria-label="`Add ${product.name}`"
+              @click="addToCart(product)"
+            >
+              <img :src="catalogAssets.plus" alt="" />
+            </button>
           </div>
         </article>
-        <p v-if="visibleProducts.length === 0" class="empty-state">No coffee found.</p>
+        <div v-if="visibleProducts.length === 0" class="empty-state" data-testid="catalog-empty">
+          <strong>{{ savedOnly ? 'Your favorites live here' : 'No coffee found' }}</strong>
+          <p>{{ savedOnly ? 'Tap the heart on a coffee to save it for later.' : 'Try another name or browse all coffees.' }}</p>
+          <button type="button" data-testid="browse-all" @click="showMenu">Browse all coffees</button>
+        </div>
       </div>
     </div>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
-      <button class="nav-item active" type="button" aria-label="Home" @click="showNotice('You are viewing home')">
-        <img :src="catalogAssets.home" alt="" />
-        <span class="nav-dot"></span>
+      <button class="nav-item" :class="{ active: !savedOnly }" type="button" data-testid="nav-menu" aria-label="Browse coffees" :aria-pressed="!savedOnly" @click="showMenu">
+        <img :src="catalogAssets.home" alt="" /><span>Explore</span>
       </button>
-      <button
-        class="nav-item"
-        type="button"
-        aria-label="Favorites"
-        @click="showNotice('Favorites are ready for your next coffee')"
-      >
-        <img :src="catalogAssets.heart" alt="" />
+      <button class="nav-item" :class="{ active: savedOnly }" type="button" data-testid="nav-saved" aria-label="Saved coffees" :aria-pressed="savedOnly" @click="showSaved">
+        <img :src="catalogAssets.heart" alt="" /><span>Saved</span>
       </button>
-      <button
-        class="nav-item cart-nav"
-        type="button"
-        aria-label="Cart"
-        @click="cartCount ? emit('open-order', cartItems) : showNotice('Your cart is empty')"
-      >
-        <img :src="catalogAssets.bag" alt="" />
-        <span v-if="cartCount" class="cart-count">{{ cartCount }}</span>
-      </button>
-      <button
-        class="nav-item"
-        type="button"
-        aria-label="Notifications"
-        @click="showNotice('You are all caught up')"
-      >
-        <img :src="catalogAssets.notification" alt="" />
+      <button class="nav-item cart-nav" type="button" data-testid="nav-cart" aria-label="Open shopping bag" @click="cartCount ? emit('open-order') : showNotice('Your bag is empty. Add a coffee to get started.')">
+        <img :src="catalogAssets.bag" alt="" /><span>My bag</span>
+        <span v-if="cartCount" class="cart-count" data-testid="cart-count">{{ cartCount }}</span>
       </button>
     </nav>
   </section>
@@ -171,99 +167,78 @@ function cycleCategory() {
 
 <style scoped>
 .coffee-screen {
-  --accent: var(--color-coffee-primary);
-  --surface: var(--color-coffee-night);
-  --muted: var(--color-coffee-muted);
-  min-height: 812px;
+  min-height: 100dvh;
   max-width: var(--size-screen-width);
-  margin: 0 auto;
-  overflow: hidden;
-  position: relative;
-  color: #fff;
-  background: var(--surface);
-  font-family: 'Sora', sans-serif;
+  margin: auto;
+  color: var(--color-coffee-text);
+  background: var(--color-coffee-night);
 }
 
 .top-area {
-  padding: var(--space-screen-top) var(--space-5) 0;
-}
-
-.location-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: var(--space-screen-top) 24px 0;
+  background: radial-gradient(ellipse at top left, #292638 0%, transparent 75%);
 }
 
 .eyebrow {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  border: 0;
-  cursor: pointer;
-}
-
-.location-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  padding: 0;
-  color: #d8d8d8;
-  background: transparent;
-  font-size: 14px;
+  color: #c4b69f;
+  font-size: 10px;
   font-weight: 600;
+  letter-spacing: 1.8px;
 }
 
-.location-button img {
-  width: 14px;
-  height: 14px;
+.location-block h1 {
+  margin: 12px 0 8px;
+  font-size: clamp(28px, 8vw, 34px);
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+
+.location-block p {
+  color: var(--color-coffee-muted);
+  font-size: 13px;
 }
 
 .search-row {
   display: flex;
-  gap: var(--space-4);
-  margin-top: 26px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .search-field {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
   min-width: 0;
-  padding: 16px;
-  border-radius: 12px;
-  background: #2a2a2a;
+  padding: 14px 16px;
+  border: 1px solid var(--color-coffee-border);
+  border-radius: 16px;
+  background: var(--color-coffee-surface);
+}
+
+.search-field:focus-within {
+  border-color: #a5a8ff;
 }
 
 .search-field input {
   width: 100%;
   min-width: 0;
-  padding: 0;
   border: 0;
-  outline: 0;
+  padding: 0;
   color: #fff;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .search-field input::placeholder {
-  color: var(--muted);
+  color: var(--color-coffee-muted);
 }
 
 .search-glyph {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
-  border: 1.5px solid #fff;
+  border: 1.5px solid #c4c3ce;
   border-radius: 50%;
   position: relative;
 }
@@ -276,7 +251,7 @@ button {
   right: -4px;
   bottom: -2px;
   transform: rotate(45deg);
-  background: #fff;
+  background: #c4c3ce;
 }
 
 .filter-button {
@@ -285,8 +260,9 @@ button {
   height: 52px;
   flex: 0 0 52px;
   place-items: center;
-  border-radius: 12px;
-  background: var(--accent);
+  border: 0;
+  border-radius: 16px;
+  background: var(--color-coffee-primary);
 }
 
 .filter-button img {
@@ -295,10 +271,10 @@ button {
 }
 
 .promo-banner {
-  height: var(--size-promo-height);
-  margin-top: 27px;
+  height: 120px;
+  margin-top: 20px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 20px;
   position: relative;
 }
 
@@ -308,93 +284,140 @@ button {
   object-fit: cover;
 }
 
+.promo-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #38251dd9, transparent);
+}
+
 .promo-copy {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   position: absolute;
-  top: 5px;
-  left: 7px;
+  z-index: 1;
+  top: 20px;
+  left: 18px;
 }
 
 .promo-copy span {
-  width: fit-content;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: var(--accent);
-  font-size: 14px;
+  color: #ffe2b6;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.8px;
 }
 
 .promo-copy strong {
-  max-width: 210px;
-  font-size: 32px;
-  line-height: 1.05;
+  max-width: 240px;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
 }
 
 .catalog {
-  padding: calc(var(--space-5) - var(--space-1) + 2px) var(--space-5) 120px;
+  padding: 20px 24px 120px;
+}
+
+.catalog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.catalog-heading h2 {
+  font-size: 18px;
+  letter-spacing: -0.4px;
+}
+
+.catalog-heading > span {
+  color: var(--color-coffee-muted);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .home-notice {
-  margin: -8px 0 12px;
-  color: #d8d8d8;
-  font-size: 12px;
+  position: fixed;
+  z-index: 20;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 392px);
+  padding: 12px 16px;
+  border: 1px solid #777add;
+  border-radius: 14px;
+  background: #292941;
+  color: #fff;
+  box-shadow: 0 8px 24px #0006;
+  font-size: 13px;
   text-align: center;
 }
 
 .category-list {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.category-list::-webkit-scrollbar {
-  display: none;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #444454 transparent;
 }
 
 .category-button {
   flex: 0 0 auto;
-  padding: 4px 8px;
-  border-radius: 6px;
-  color: #313131;
-  background: #ededed;
-  font-size: 14px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-coffee-border);
+  border-radius: 12px;
+  color: #bfbecb;
+  background: var(--color-coffee-surface);
+  font-size: 12px;
 }
 
 .category-button.active {
-  color: #fffcfc;
-  background: var(--accent);
+  color: #fff;
+  background: var(--color-coffee-primary);
+  border-color: var(--color-coffee-primary);
   font-weight: 600;
 }
 
 .product-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5) var(--space-4);
-  margin-top: var(--space-4);
+  gap: 16px 12px;
+  margin-top: 16px;
 }
 
 .product-card {
   min-width: 0;
   padding: 8px 8px 12px;
-  border-radius: 16px;
-  background: rgba(255, 252, 252, 0.05);
-  animation: product-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--card-index) * 70ms);
-  transition: transform 180ms ease, background-color 180ms ease;
+  border: 1px solid #ffffff08;
+  border-radius: 20px;
+  background: var(--color-coffee-surface);
+  transition: border-color 160ms ease;
 }
 
 .product-card:hover {
-  background: rgba(255, 252, 252, 0.09);
-  transform: translateY(-3px);
+  border-color: #6468df80;
+}
+
+.product-open {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #fff;
+  text-align: left;
 }
 
 .product-image-wrap {
-  height: var(--size-product-image);
+  display: block;
+  height: clamp(128px, 35vw, 164px);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 14px;
   position: relative;
 }
 
@@ -408,14 +431,14 @@ button {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px;
-  border-radius: 0 12px 0 24px;
+  padding: 6px 8px;
+  border-radius: 10px;
   position: absolute;
-  top: 0;
-  right: 0;
-  color: rgba(255, 252, 252, 0.8);
-  background: rgba(17, 17, 17, 0.45);
-  font-size: 8px;
+  top: 6px;
+  right: 6px;
+  color: #fff;
+  background: #16151bcc;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -424,66 +447,42 @@ button {
   height: 12px;
 }
 
-.product-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
+.product-name {
+  display: block;
+  margin: 12px 2px 2px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.product-detail h2,
-.product-detail p {
-  margin: 0;
-}
-
-.product-detail h2 {
-  overflow: hidden;
-  font-size: 16px;
-  line-height: 1.5;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.product-detail p {
-  margin-top: 4px;
-  color: #fff;
-  font-size: 12px;
-  line-height: 1.2;
+.product-type {
+  display: block;
+  margin: 0 2px;
+  color: var(--color-coffee-muted);
+  font-size: 11px;
 }
 
 .product-price-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
+  margin: 10px 2px 0;
 }
 
 .product-price-row strong {
-  font-size: 18px;
+  font-size: 16px;
   white-space: nowrap;
 }
 
 .add-button {
   display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   place-items: center;
-  border-radius: 8px;
-  background: var(--accent);
-  transition: transform 160ms ease, filter 160ms ease;
-}
-
-.add-button:hover,
-.add-button:focus-visible {
-  filter: brightness(1.12);
-  transform: scale(1.06);
-}
-
-.add-button:active,
-.filter-button:active,
-.nav-item:active {
-  transform: scale(0.94);
+  border: 0;
+  border-radius: 13px;
+  background: var(--color-coffee-primary);
 }
 
 .add-button img {
@@ -493,93 +492,90 @@ button {
 
 .empty-state {
   grid-column: 1 / -1;
-  color: var(--muted);
+  padding: 32px 16px;
+  border: 1px dashed var(--color-coffee-border);
+  border-radius: 20px;
   text-align: center;
+}
+
+.empty-state p {
+  margin: 8px 0 16px;
+  color: var(--color-coffee-muted);
+  font-size: 13px;
+}
+
+.empty-state button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--color-coffee-primary);
 }
 
 .bottom-nav {
   display: flex;
-  height: 99px;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 56px;
-  padding: 24px;
+  align-items: center;
+  justify-content: space-around;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-coffee-border);
   border-radius: 24px 24px 0 0;
   position: fixed;
-  right: max(0px, calc((100vw - 375px) / 2));
+  right: max(0px, calc((100vw - var(--size-screen-width)) / 2));
   bottom: 0;
-  left: max(0px, calc((100vw - 375px) / 2));
-  z-index: 2;
-  background: var(--surface);
+  left: max(0px, calc((100vw - var(--size-screen-width)) / 2));
+  z-index: 10;
+  background: #1b1b24f5;
+  backdrop-filter: blur(16px);
 }
 
 .nav-item {
   display: flex;
-  width: 24px;
-  height: 51px;
+  min-width: 72px;
+  min-height: 52px;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 0;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 14px;
   position: relative;
+  color: var(--color-coffee-muted);
   background: transparent;
-  transition: transform 160ms ease;
+  font-size: 10px;
+}
+
+.nav-item.active {
+  background: #6468df1f;
+  color: #b3b5ff;
 }
 
 .nav-item img {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-dot {
-  width: 10px;
-  height: 5px;
-  border-radius: 18px;
-  background: var(--accent);
+  width: 22px;
+  height: 22px;
 }
 
 .cart-count {
   display: grid;
-  width: 16px;
-  height: 16px;
+  min-width: 18px;
+  height: 18px;
   place-items: center;
-  border: 2px solid var(--surface);
-  border-radius: 50%;
+  padding: 0 4px;
+  border: 2px solid #1b1b24;
+  border-radius: 20px;
   position: absolute;
-  top: -7px;
-  right: -8px;
+  top: 0;
+  right: 16px;
   color: #fff;
-  background: var(--accent);
+  background: var(--color-coffee-primary);
   font-size: 9px;
-}
-
-@media (max-width: 390px) {
-  .bottom-nav {
-    gap: clamp(32px, 14vw, 56px);
-  }
-}
-
-@keyframes product-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .product-card {
-    animation: none;
     transition: none;
   }
 
-  .add-button,
-  .nav-item {
-    transition: none;
-  }
 }
 </style>

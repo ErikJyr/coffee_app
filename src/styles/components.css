@@ -6,14 +6,26 @@ textarea {
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, input, textarea, a):focus-visible {
+  outline: 3px solid #b1b3ff;
+  outline-offset: 4px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .primary-button {
+  min-height: 56px;
   padding: 16px 20px;
   border: 0;
   border-radius: 16px;
   color: #fff;
-  background: var(--color-coffee-primary);
+  background: linear-gradient(135deg, #7679ee, var(--color-coffee-primary));
   font-size: 16px;
   font-weight: 600;
   transition: transform 160ms ease, filter 160ms ease;
@@ -39,7 +51,7 @@ button {
 }
 
 .screen-header strong {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .icon-button {
@@ -50,15 +62,16 @@ button {
   padding: 0;
   border: 0;
   border-radius: 12px;
-  background: transparent;
+  background: var(--color-coffee-surface);
 }
 
 .icon-button img {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: auto;
 }
 
 .back-icon {
+  width: 16px !important;
   transform: rotate(90deg);
 }
 
