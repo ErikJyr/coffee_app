@@ -120,7 +120,11 @@ function tapBrand(): void {
         </button>
       </div>
 
-      <div class="product-grid">
+      <TransitionGroup
+        name="product"
+        tag="div"
+        class="product-grid"
+      >
         <article
           v-for="product in visibleProducts"
           :key="product.name"
@@ -153,12 +157,17 @@ function tapBrand(): void {
             </button>
           </div>
         </article>
-        <div v-if="visibleProducts.length === 0" class="empty-state" data-testid="catalog-empty">
+        <div
+          v-if="visibleProducts.length === 0"
+          key="empty-state"
+          class="empty-state"
+          data-testid="catalog-empty"
+        >
           <strong>{{ savedOnly ? 'Your favorites live here' : 'No coffee found' }}</strong>
           <p>{{ savedOnly ? 'Tap the heart on a coffee to save it for later.' : 'Try another name or browse all coffees.' }}</p>
           <button type="button" data-testid="browse-all" @click="showMenu">Browse all coffees</button>
         </div>
-      </div>
+      </TransitionGroup>
     </div>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
@@ -376,6 +385,7 @@ function tapBrand(): void {
 
 .category-list {
   display: flex;
+  justify-content: safe center;
   gap: 8px;
   overflow-x: auto;
   padding: 4px 2px 8px;
@@ -392,13 +402,21 @@ function tapBrand(): void {
   color: #bfbecb;
   background: var(--color-coffee-surface);
   font-size: 12px;
+  transition:
+    color 320ms ease,
+    background-color 320ms ease,
+    border-color 320ms ease,
+    transform 320ms ease,
+    box-shadow 320ms ease;
 }
 
 .category-button.active {
   color: #fff;
   background: var(--color-coffee-primary);
   border-color: var(--color-coffee-primary);
+  box-shadow: 0 4px 14px #6468df40;
   font-weight: 600;
+  transform: scale(1.03);
 }
 
 .product-grid {
@@ -406,6 +424,25 @@ function tapBrand(): void {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px 12px;
   margin-top: 16px;
+  position: relative;
+}
+
+.product-enter-active,
+.product-leave-active,
+.product-move {
+  transition:
+    opacity 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.product-enter-from,
+.product-leave-to {
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+}
+
+.product-leave-active {
+  position: absolute;
 }
 
 .product-card {
@@ -592,9 +629,16 @@ function tapBrand(): void {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .product-card {
+  .product-card,
+  .category-button,
+  .product-enter-active,
+  .product-leave-active,
+  .product-move {
     transition: none;
   }
 
+  .category-button.active {
+    transform: none;
+  }
 }
 </style>
